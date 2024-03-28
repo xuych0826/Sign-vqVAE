@@ -1,0 +1,7 @@
+*.jpg
+*.mp4
+*.png
+logs
+*.pth
+*.pyc
+*.npy
