@@ -38,7 +38,7 @@ for file_name in os.listdir(video_folder):
     H = 14 * round(H / 14)
     W = 14 * round(W / 14)
     print(f"Resized image shape: {H}x{W}")
-    transform = transform.Compose([
+    transformer = transform.Compose([
         transform.Resize((H, W)),
         transform.ToTensor()
     ])
@@ -48,13 +48,13 @@ for file_name in os.listdir(video_folder):
     output_path = os.path.join(output_folder, f"{file_name[:-4]}.npy")
     whole_features = []
 
-    for i in range(0, count//20, batch_size):
+    for i in range(0, count, batch_size):
         imgs = []
-        for j in range(i, min(count//20, i + batch_size)):
+        for j in range(i, min(count, i + batch_size)):
             img = cv2.imread(f'{img_folder}/frame{j}.jpg')
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img)
-            img = transform(img).unsqueeze(0).to(device)
+            img = transformer(img).unsqueeze(0).to(device)
             imgs.append(img)
 
         with torch.no_grad():
@@ -70,7 +70,7 @@ for file_name in os.listdir(video_folder):
     #delete the img folder
     for file_name in glob.glob(f'{img_folder}/*'):
         os.remove(file_name)
-    print
+    print("down with", video_path)
         
 
 
