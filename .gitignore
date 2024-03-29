@@ -5,3 +5,4 @@ logs
 *.pth
 *.pyc
 *.npy
+output_vqfinal

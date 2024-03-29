@@ -6,6 +6,7 @@ import random
 import codecs as cs
 from tqdm import tqdm
 import os
+from itertools import cycle
 
 class Dataset(data.Dataset):
     def __init__(self, data_folder, batch_size, window_size):
@@ -34,12 +35,13 @@ class Dataset(data.Dataset):
     def __len__(self):
         return len(self.data)
     
-    def __getitem__(self, index):
-        motion =  self.data[index]
-        idx = random.randint(0, self.lengths[index])
-        return motion[idx:idx+self.window_size]
+    def __getitem__(self, item):
+        motion = self.data[item]
+        idx = random.randint(0, len(motion) - self.window_size)
+        motion = motion[idx:idx+self.window_size]
+        return motion
     
-def DATALoader(data_folder, batch_size, window_size, num_workers = 8,):
+def DATALoader(data_folder, batch_size, window_size, num_workers = 0,):
     trainSet = Dataset(data_folder, batch_size, window_size)
     prob = trainSet.compute_sampling_prob()
     sampler = torch.utils.data.WeightedRandomSampler(prob, num_samples = len(trainSet) * 1000, replacement=True)
@@ -58,15 +60,15 @@ def cycle(iterable):
             yield x
 
 
-if __name__ == "__main__":
-    data_folder = "features"
-    batch_size = 1
-    window_size = 64
-    train_loader = DATALoader(data_folder, batch_size, window_size)
-    for i, data in enumerate(train_loader):
-        print(data.shape)
-        if i == 10:
-            break
+# if __name__ == "__main__":
+#     data_folder = "features"
+#     batch_size = 1
+#     window_size = 64
+#     train_loader = DATALoader(data_folder, batch_size, window_size)
+#     for i, data in enumerate(train_loader):
+#         print(data.shape)
+#         if i == 10:
+#             break
 
 
     
