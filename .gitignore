@@ -6,3 +6,6 @@ logs
 *.pyc
 *.npy
 output_vqfinal
+*.txt
+*SKIPPED
+*.VERIFIED
