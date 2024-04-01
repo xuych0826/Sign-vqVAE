@@ -6,21 +6,23 @@ import os
 import glob
 import numpy as np
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+batch_size = 32
+device = torch.device("cuda:0")
 dinov2_vitg14_reg = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg')
 dinov2_vitg14_reg.eval()
 dinov2_vitg14_reg.to(device)
+print("Model loaded")
 
-video_folder = 'mp4'
+video_folder = f"videos"
 for root, dirs, files in os.walk(video_folder):
     for file in files:
         if file.endswith('.mp4'):
-            video_path = os.path.relpath(os.path.join(root, file), os.getcwd())
+            video_path = os.path.join(root, file)
             print(video_path)
             cap = cv2.VideoCapture(video_path)
             success, image = cap.read()
             count = 0
-            img_folder = f'frames/{file_name[:-4]}'
+            img_folder = f'frames/{file[:-4]}'
             os.makedirs(img_folder, exist_ok=True)
             while success:
                 cv2.imwrite(f"{img_folder}/frame{count}.jpg", image)
@@ -30,7 +32,7 @@ for root, dirs, files in os.walk(video_folder):
         else:
             continue
 
-        print(f"Extracted {count} frames from {file_name[:-4]}")
+        print(f"Extracted {count} frames from {file[:-4]}")
         #get the H,W of the first frame
         img = cv2.imread(f'{img_folder}/frame0.jpg')
         print(f"Image shape: {img.shape}")
@@ -45,9 +47,9 @@ for root, dirs, files in os.walk(video_folder):
             transform.ToTensor()
         ])
 
-        batch_size = 128
-        output_folder = 'features'
-        output_path = os.path.join(output_folder, f"{file_name[:-4]}.npy")
+        
+        output_folder = root
+        output_path = os.path.join(output_folder, f"{file[:-4]}.npy")
         whole_features = []
 
         for i in range(0, count, batch_size):
