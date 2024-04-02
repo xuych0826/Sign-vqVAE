@@ -4,8 +4,11 @@
 logs
 *.pth
 *.pyc
-*.npy
 output_vqfinal
 *.txt
 *SKIPPED
 *.VERIFIED
+*.npy
+*.gz
+*.zip
+*.ffs_db
