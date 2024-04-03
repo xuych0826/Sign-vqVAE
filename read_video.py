@@ -12,17 +12,17 @@ from multiprocessing import Process, Manager
 ############################################
 batch_size = 16
 txt_file = "/data/rhythmo/Projects/sign_video_new/videos/output.txt"
-num_cuda = 1
+num_cuda = 4
 idx_st = 0
 idx_end = 1000
 ############################################
 
-file_list = ["mp4\Oriental_news_2023-02-13sign.mp4","mp4\Oriental_news_2023-02-14sign.mp4"]
-# with open(txt_file, "r") as file:
-#     for line in file:
-#         file_list.append(line.strip())
-# print("number of MP4file:",len(file_list))
-# file_list = file_list[idx_st, idx_end]
+file_list = []
+with open(txt_file, "r") as file:
+    for line in file:
+        file_list.append(line.strip())
+print("number of MP4file:",len(file_list))
+file_list = file_list[idx_st, idx_end]
 
 ############################################
 
@@ -45,11 +45,14 @@ for i in range(num_cuda):
 
 def extract_feature(file, GPUid):
     if not file.endswith(".mp4"):
+        print(f"Invalid file: {file}")
         return
     if not os.path.exists(file):
+        print(f"File not found: {file}")
         return
     npy_file = file.replace(".mp4", ".npy")
     if os.path.exists(npy_file):
+        print(f"File already exists: {npy_file}")
         return
     root = os.path.dirname(npy_file)
     cap = cv2.VideoCapture(file)
@@ -73,9 +76,9 @@ def extract_feature(file, GPUid):
                 transform.ToTensor()
             ])
     whole_features = []
-    for i in range(0, count//100, batch_size):
+    for i in range(0, count, batch_size):
         imgs = []
-        for j in range(i, min(count//100, i + batch_size)):
+        for j in range(i, min(count, i + batch_size)):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img = transformer(Image.fromarray(frames[j]))
             imgs.append(img).unsqueeze(0).to(devices[GPUid])
