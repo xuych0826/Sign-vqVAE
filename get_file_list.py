@@ -18,7 +18,7 @@ for base_video_folder in base_video_folder_list:
     for root, dirs, files in os.walk(base_video_folder):
         for file in files:
             if file.endswith('.mp4'):
-                file_list.append(os.join(root, file))
+                file_list.append(os.path.join(root, file))
 
 print(len(file_list))
 
@@ -41,3 +41,5 @@ with open(output_file, "r") as file:
 
 for i in range(10):
     print(file_list[i])
+
+print("down")
