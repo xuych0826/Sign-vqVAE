@@ -6,44 +6,17 @@ import os
 import glob
 import numpy as np
 import random
-from multiprocessing import Process, Manager
+import multiprocessing
 
-
-############################################
 batch_size = 16
 txt_file = "/data/rhythmo/Projects/sign_video_new/videos/output.txt"
-num_cuda = 4
+num_cuda = 6
+GPU_start = 2
 idx_st = 0
-idx_end = 1000
-############################################
-
-file_list = []
-with open(txt_file, "r") as file:
-    for line in file:
-        file_list.append(line.strip())
-print("number of MP4file:",len(file_list))
-file_list = file_list[idx_st, idx_end]
-
-############################################
-
-def load_model(device):
-    model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg')
-    model.eval()
-    model.to(device)
-    return model
-
-models = []
-devices = []
-for i in range(num_cuda):
-    device = torch.device(f"cuda:{i}")
-    model = load_model(device)
-    devices.append(device)
-    models.append(model)
+idx_end = 30000
 
 
-############################################
-
-def extract_feature(file, GPUid):
+def extract_feature(file, device, model):
     if not file.endswith(".mp4"):
         print(f"Invalid file: {file}")
         return
@@ -61,7 +34,6 @@ def extract_feature(file, GPUid):
         ret, frame = cap.read()
         if not ret:
             break
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frames.append(frame)
     cap.release()
     count = len(frames)
@@ -79,39 +51,57 @@ def extract_feature(file, GPUid):
     for i in range(0, count, batch_size):
         imgs = []
         for j in range(i, min(count, i + batch_size)):
+            img = frames[j]
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = transformer(Image.fromarray(frames[j]))
-            imgs.append(img).unsqueeze(0).to(devices[GPUid])
+            img = Image.fromarray(img)
+            img = transformer(img).unsqueeze(0).to(device)
+            imgs.append(img)
 
-            with torch.no_grad():
-                features = models[GPUid](torch.cat(imgs, 0))
-                whole_features.append(features.cpu().numpy())
-                print(features.shape, root)
+        with torch.no_grad():
+            features = model(torch.cat(imgs, 0))
+        whole_features.append(features.cpu().numpy())
+        print(features.shape, file, device)
+    whole_features = np.concatenate(whole_features, 0)
+    np.save(npy_file, whole_features)
+    print(f"Saved features to {npy_file}")
+    print(whole_features.shape)
+    print("down with", file)
 
-            whole_features = np.concatenate(whole_features, 0)
-            np.save(npy_file, whole_features)
-            print(f"Saved features to {npy_file}")
-            print(whole_features.shape)
-            print("down with", file)
 
 
-manager = Manager()
-unprocessed_elements = manager.list(file_list)
+def worker(GPUid, file_list):
+    device = torch.device(f"cuda:{GPUid+GPU_start}")
+    model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg')
+    model.eval()
+    model.to(device)
+    for file in file_list:
+        extract_feature(file, device, model)
 
-def process_elements(unprocessed_elements, GPUid):
-    while unprocessed_elements:
-        element = unprocessed_elements.pop(0)
-        print(f"Processing element: {element} on GPU {GPUid}")
-        extract_feature(element, GPUid)
 
-processes = []
-for i in range(num_cuda):
-    p = Process(target=process_elements, args=(unprocessed_elements, i))
-    p.start()
-    processes.append(p)
 
-for p in processes:
-    p.join()
+if __name__ == '__main__':
+
+    file_list = []
+    with open(txt_file, "r") as file:
+        for line in file:
+            file_list.append(line.strip())
+    print("number of MP4file:",len(file_list))
+    file_list = file_list[idx_st:idx_end]
+
+    print("len=:",len(file_list))
+    count = len(file_list)
+    processes = []
+
+    for i in range(num_cuda):
+        files = file_list[i::num_cuda]
+        p = multiprocessing.Process(target=worker, args=(i,files))
+        processes.append(p)
+        p.start()
+
+    for process in processes:
+        process.join()
+
+
 
 
     
