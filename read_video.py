@@ -10,8 +10,8 @@ import multiprocessing
 
 batch_size = 16
 txt_file = "/data/rhythmo/Projects/sign_video_new/videos/output.txt"
-num_cuda = 6
-GPU_start = 2
+num_cuda = 8
+GPU_start = 0
 idx_st = 0
 idx_end = 30000
 
@@ -103,5 +103,4 @@ if __name__ == '__main__':
 
 
 
-
-    
+## 720p, fps, img correct, server
