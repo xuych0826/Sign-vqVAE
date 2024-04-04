@@ -15,8 +15,26 @@ GPU_start = 0
 idx_st = 0
 idx_end = 30000
 
+def calc_size(original_height, original_width, max_size = 720):
+    new_height, new_width = 0, 0
+    if original_width <= max_size and original_height <= max_size:
+        new_height, new_width = original_height, original_width
+
+    aspect_ratio = original_width / original_height
+    if original_width >= original_height:
+        new_width = max_size
+        new_height = int(max_size / aspect_ratio)
+    else:
+        new_height = max_size
+        new_width = int(max_size * aspect_ratio)
+
+    new_height = 14 * round(new_height / 14)
+    new_width = 14 * round(new_width / 14)
+
+    return new_height, new_width
 
 def extract_feature(file, device, model):
+
     if not file.endswith(".mp4"):
         print(f"Invalid file: {file}")
         return
@@ -27,8 +45,10 @@ def extract_feature(file, device, model):
     if os.path.exists(npy_file):
         print(f"File already exists: {npy_file}")
         return
+    
     root = os.path.dirname(npy_file)
     cap = cv2.VideoCapture(file)
+    fps = cap.get(cv2.CAP_PROP_FPS)
     frames = []
     while True:
         ret, frame = cap.read()
@@ -38,15 +58,16 @@ def extract_feature(file, device, model):
     cap.release()
     count = len(frames)
     print(f"Extracted {len(frames)} from {file}")
+
     H, W, _ = frames[0].shape
     print(f"Image shape: {H}x{W}")
-    H = 14 * round(H / 14)
-    W = 14 * round(W / 14)
+    H, W = calc_size(H,W)
     print(f"Resized image shape: {H}x{W}")
     transformer = transform.Compose([
                 transform.Resize((H, W)),
                 transform.ToTensor()
             ])
+    
     whole_features = []
     for i in range(0, count, batch_size):
         imgs = []
@@ -62,9 +83,10 @@ def extract_feature(file, device, model):
         whole_features.append(features.cpu().numpy())
         print(features.shape, file, device)
     whole_features = np.concatenate(whole_features, 0)
-    np.save(npy_file, whole_features)
+    data = {'feature' : whole_features, 'fps' : fps}
+    np.save(npy_file, data)
     print(f"Saved features to {npy_file}")
-    print(whole_features.shape)
+    print("feature :", whole_features.shape, "fps :",fps)
     print("down with", file)
 
 
@@ -103,4 +125,4 @@ if __name__ == '__main__':
 
 
 
-## 720p, fps, img correct, server
+##fps, server

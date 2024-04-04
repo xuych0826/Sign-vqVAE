@@ -18,7 +18,9 @@ class Dataset(data.Dataset):
         self.lengths = []
         for file in os.listdir(data_folder):
             if file.endswith(".npy"):
-                motion = np.load(pjoin(data_folder, file))
+                load_data = np.load(pjoin(data_folder, file))
+                motion = load_data['feature']
+                fps = load_data['fps']
                 if motion.shape[0] < self.window_size:
                     continue
                 self.data.append(motion)
