@@ -7,13 +7,15 @@ import glob
 import numpy as np
 import random
 import multiprocessing
+from tqdm import trange
 
-batch_size = 16
-txt_file = "/data/rhythmo/Projects/sign_video_new/videos/output.txt"
+
+batch_size = 10
+txt_file = "/data/rhythmo/SignGPT/data/online/output.txt"
 num_cuda = 8
 GPU_start = 0
 idx_st = 0
-idx_end = 30000
+idx_end = 2000
 
 def calc_size(original_height, original_width, max_size = 720):
     new_height, new_width = 0, 0
@@ -49,17 +51,11 @@ def extract_feature(file, device, model):
     root = os.path.dirname(npy_file)
     cap = cv2.VideoCapture(file)
     fps = cap.get(cv2.CAP_PROP_FPS)
-    frames = []
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frames.append(frame)
-    cap.release()
-    count = len(frames)
-    print(f"Extracted {len(frames)} from {file}")
+    count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(f"extract {count} frames from {file}")
 
-    H, W, _ = frames[0].shape
+    ret, frame = cap.read()
+    H, W, _ = frame.shape
     print(f"Image shape: {H}x{W}")
     H, W = calc_size(H,W)
     print(f"Resized image shape: {H}x{W}")
@@ -67,12 +63,14 @@ def extract_feature(file, device, model):
                 transform.Resize((H, W)),
                 transform.ToTensor()
             ])
-    
+
     whole_features = []
-    for i in range(0, count, batch_size):
+    for i in trange(0, count-1, batch_size, desc=f"{device}"):
         imgs = []
-        for j in range(i, min(count, i + batch_size)):
-            img = frames[j]
+        for j in range(batch_size):
+            ret, img = cap.read()
+            if not ret:
+                break
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img)
             img = transformer(img).unsqueeze(0).to(device)
@@ -82,14 +80,13 @@ def extract_feature(file, device, model):
             features = model(torch.cat(imgs, 0))
         whole_features.append(features.cpu().numpy())
         print(features.shape, file, device)
+    cap.release()
     whole_features = np.concatenate(whole_features, 0)
     data = {'feature' : whole_features, 'fps' : fps}
     np.save(npy_file, data)
     print(f"Saved features to {npy_file}")
     print("feature :", whole_features.shape, "fps :",fps)
     print("down with", file)
-
-
 
 def worker(GPUid, file_list):
     device = torch.device(f"cuda:{GPUid+GPU_start}")
