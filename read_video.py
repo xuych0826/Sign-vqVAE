@@ -10,12 +10,16 @@ import multiprocessing
 from tqdm import trange
 
 
-batch_size = 10
+batch_size = 3
 txt_file = "/data/rhythmo/SignGPT/data/online/output.txt"
 num_cuda = 8
 GPU_start = 0
-idx_st = 0
-idx_end = 2000
+idx_st = 3000
+idx_end = 3600
+
+def log_info(txt):
+    with open("log.txt", "a") as f:
+        f.write(txt + "\n")    
 
 def calc_size(original_height, original_width, max_size = 720):
     new_height, new_width = 0, 0
@@ -36,22 +40,28 @@ def calc_size(original_height, original_width, max_size = 720):
     return new_height, new_width
 
 def extract_feature(file, device, model):
+    log_info(f"{device} is trying to process {file}")
 
     if not file.endswith(".mp4"):
+        log_info(f"{device}:Invalid file: {file}")
         print(f"Invalid file: {file}")
         return
     if not os.path.exists(file):
+        log_info(f"{device}:File not found: {file}")
         print(f"File not found: {file}")
         return
     npy_file = file.replace(".mp4", ".npy")
     if os.path.exists(npy_file):
+        log_info(f"{device}:File already exists: {npy_file}")
         print(f"File already exists: {npy_file}")
         return
     
+    log_info(f"{device} is reading the video {file}")
     root = os.path.dirname(npy_file)
     cap = cv2.VideoCapture(file)
     fps = cap.get(cv2.CAP_PROP_FPS)
     count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    log_info(f"{device} extract {count} frames from {file}, fps = {fps}")
     print(f"extract {count} frames from {file}")
 
     ret, frame = cap.read()
@@ -64,6 +74,7 @@ def extract_feature(file, device, model):
                 transform.ToTensor()
             ])
 
+    log_info(f"{device} is running with {file}")
     whole_features = []
     for i in trange(0, count-1, batch_size, desc=f"{device}"):
         imgs = []
@@ -87,16 +98,17 @@ def extract_feature(file, device, model):
     print(f"Saved features to {npy_file}")
     print("feature :", whole_features.shape, "fps :",fps)
     print("down with", file)
+    log_info(f"{device} has down with {file}")
 
 def worker(GPUid, file_list):
     device = torch.device(f"cuda:{GPUid+GPU_start}")
     model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitg14_reg')
     model.eval()
     model.to(device)
+    log_info(f"cuda:{GPUid+GPU_start} has loaded model")
     for file in file_list:
         extract_feature(file, device, model)
-
-
+    log_info(f"cuda:{GPUid+GPU_start} has down it's work")
 
 if __name__ == '__main__':
 
@@ -110,6 +122,7 @@ if __name__ == '__main__':
     print("len=:",len(file_list))
     count = len(file_list)
     processes = []
+    random.shuffle(file_list)
 
     for i in range(num_cuda):
         files = file_list[i::num_cuda]
@@ -119,7 +132,3 @@ if __name__ == '__main__':
 
     for process in processes:
         process.join()
-
-
-
-##fps, server
