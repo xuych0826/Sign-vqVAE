@@ -11,8 +11,8 @@ from tqdm import trange
 
 
 batch_size = 3
-txt_file = "/data/rhythmo/SignGPT/data/online/output.txt"
-num_cuda = 8
+txt_file = "/data/rhythmo_36/SignGPT/data/online/output.txt"
+num_cuda = 4
 GPU_start = 0
 idx_st = 3000
 idx_end = 3600
