@@ -8,6 +8,7 @@ import numpy as np
 import random
 import multiprocessing
 from tqdm import trange
+import datetime
 
 
 batch_size = 3
@@ -18,8 +19,9 @@ idx_st = 3000
 idx_end = 3600
 
 def log_info(txt):
+    current_time = datetime.datetime.now().time()
     with open("log.txt", "a") as f:
-        f.write(txt + "\n")    
+        f.write(txt + f" time = {current_time}" + "\n")    
 
 def calc_size(original_height, original_width, max_size = 720):
     new_height, new_width = 0, 0
@@ -88,7 +90,8 @@ def extract_feature(file, device, model):
             imgs.append(img)
 
         with torch.no_grad():
-            features = model(torch.cat(imgs, 0))
+            if not len(imgs) == 0:
+                features = model(torch.cat(imgs, 0))
         whole_features.append(features.cpu().numpy())
         print(features.shape, file, device)
     cap.release()
