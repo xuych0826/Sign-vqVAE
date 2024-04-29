@@ -10,15 +10,17 @@ import random
 ############################################
 
 
-base_video_folder_list = ["/data/rhythmo/Projects/sign_video_new/videos"]
-output_file = "/data/rhythmo/Projects/sign_video_new/videos/output.txt"
+base_video_folder_list = ["/data/rhythmo_36/SignGPT/data/online/youtubeasl","/data/rhythmo_36/SignGPT/data/online/HOW2Sign"]
+output_file = "/data/rhythmo_36/SignGPT/data/online/output.txt"
 
 file_list = []
 for base_video_folder in base_video_folder_list:
     for root, dirs, files in os.walk(base_video_folder):
         for file in files:
             if file.endswith('.mp4'):
-                file_list.append(os.path.join(root, file))
+                npy_file = file.replace('.mp4','.npy')
+                if not os.path.exists(os.path.join(root, npy_file)):
+                    file_list.append(os.path.join(root, file))
 
 print(len(file_list))
 
