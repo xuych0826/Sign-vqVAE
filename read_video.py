@@ -12,11 +12,11 @@ import datetime
 
 
 batch_size = 3
-txt_file = "/data/rhythmo_36/SignGPT/data/online/output.txt"
+txt_file = "/data/rhythmo_36/SignGPT/data/csl/output.txt"
 num_cuda = 4
 GPU_start = 0
-idx_st = 3000
-idx_end = 3600
+idx_st = 20000
+idx_end = 30000
 
 def log_info(txt):
     current_time = datetime.datetime.now().time()
@@ -41,6 +41,12 @@ def calc_size(original_height, original_width, max_size = 720):
 
     return new_height, new_width
 
+def calc_index (length, raw_fps, tar_fps):
+    factor = raw_fps / tar_fps
+    indices = np.arange(0, length, factor).astype(int)
+    indices = indices[indices < length]
+    return indices
+    
 def extract_feature(file, device, model):
     log_info(f"{device} is trying to process {file}")
 
@@ -78,16 +84,31 @@ def extract_feature(file, device, model):
 
     log_info(f"{device} is running with {file}")
     whole_features = []
-    for i in trange(0, count-1, batch_size, desc=f"{device}"):
+    
+    index= calc_index(count-1, fps, 20)
+    length = len(index)
+    count = 0
+    
+    for i in trange(0, length, batch_size, desc=f"{device}"):
         imgs = []
         for j in range(batch_size):
+            
             ret, img = cap.read()
             if not ret:
                 break
+            while count not in index:
+                count += 1
+                ret, img = cap.read()
+                if not ret:
+                    break
+            if not ret:
+                break
+            
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img)
             img = transformer(img).unsqueeze(0).to(device)
             imgs.append(img)
+            count += 1
 
         with torch.no_grad():
             if not len(imgs) == 0:
@@ -96,7 +117,7 @@ def extract_feature(file, device, model):
         print(features.shape, file, device)
     cap.release()
     whole_features = np.concatenate(whole_features, 0)
-    data = {'feature' : whole_features, 'fps' : fps}
+    data = {'feature' : whole_features, 'fps' : 20}
     np.save(npy_file, data)
     print(f"Saved features to {npy_file}")
     print("feature :", whole_features.shape, "fps :",fps)
