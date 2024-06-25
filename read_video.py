@@ -27,14 +27,14 @@ def calc_size(original_height, original_width, max_size = 720):
     new_height, new_width = 0, 0
     if original_width <= max_size and original_height <= max_size:
         new_height, new_width = original_height, original_width
-
-    aspect_ratio = original_width / original_height
-    if original_width >= original_height:
-        new_width = max_size
-        new_height = int(max_size / aspect_ratio)
     else:
-        new_height = max_size
-        new_width = int(max_size * aspect_ratio)
+        aspect_ratio = original_width / original_height
+        if original_width >= original_height:
+            new_width = max_size
+            new_height = int(max_size / aspect_ratio)
+        else:
+            new_height = max_size
+            new_width = int(max_size * aspect_ratio)
 
     new_height = 14 * round(new_height / 14)
     new_width = 14 * round(new_width / 14)
